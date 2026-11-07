@@ -1,0 +1,41 @@
+name: Build AFRA APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip project
+        run: |
+          mkdir project
+          unzip -q afra-v2.zip -d project
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build web app
+        working-directory: project
+        run: |
+          npm install --legacy-peer-deps --no-audit --no-fund
+          npx vite build
+      - name: Copy web app into Android project
+        run: |
+          rm -rf project/android/app/src/main/assets
+          mkdir -p project/android/app/src/main/assets
+          cp -r project/dist/. project/android/app/src/main/assets/
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+      - name: Build APK
+        working-directory: project/android
+        run: gradle assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AFRA-apk
+          path: project/android/app/build/outputs/apk/debug/app-debug.apk
