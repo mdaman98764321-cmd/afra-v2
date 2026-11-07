@@ -3,6 +3,8 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -35,7 +37,13 @@ jobs:
       - name: Build APK
         working-directory: project/android
         run: gradle assembleDebug --no-daemon
-      - uses: actions/upload-artifact@v4
+      - name: Name the APK
+        run: cp project/android/app/build/outputs/apk/debug/app-debug.apk AFRA.apk
+      - name: Publish APK for direct download
+        uses: softprops/action-gh-release@v2
         with:
-          name: AFRA-apk
-          path: project/android/app/build/outputs/apk/debug/app-debug.apk
+          tag_name: build-${{ github.run_number }}
+          name: AFRA build ${{ github.run_number }}
+          body: Download AFRA.apk below and install it over your current AFRA.
+          files: AFRA.apk
+          make_latest: true
